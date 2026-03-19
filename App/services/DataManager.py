@@ -53,11 +53,11 @@ class DataManager:
 
     def save(self):
         self.file.parent.mkdir(parents=True, exist_ok=True)
-        self.file.write_text(json.dumps(self.data, ensure_ascii=False, indent=2))
+        self.file.write_text(json.dumps(self.data, ensure_ascii=True, indent=2))
 
     def createTable(self, title: str, description: str = ""):
         similartitlescount = sum(1 for t in self.data.values() if t["title"] == title)
-        id = title if self.data.get(title) is None else f"{title} ({similartitlescount + 1})"
+        id = title if self.data.get(title) is None else f"{title} ({similartitlescount})"
         id.split()
         self.data[id] = {
             BoardKeys.TITLE: title,
