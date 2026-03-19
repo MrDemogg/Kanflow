@@ -51,7 +51,7 @@ class MainWindow(FramelessWindow):
 
         self.pages: dict[str, Page] = {
             Pages.HOME: HomePage(self.datamanager, self.handleNavigation, self.dataTransfer),
-            Pages.BOARD: BoardPage(datamanager=self.datamanager)
+            Pages.BOARD: BoardPage(self.datamanager, self.handleNavigation)
         }
 
         for page in self.pages.values():
@@ -71,6 +71,7 @@ class MainWindow(FramelessWindow):
 
     def handleNavigation(self, pageName: str):
         self.stack.setCurrentWidget(self.pages[pageName])
+        self.pages[pageName].open()
     
     def dataTransfer(self, consumer: str, data: dict):
         self.pages[consumer].acceptData(data)

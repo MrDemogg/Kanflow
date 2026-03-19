@@ -82,3 +82,4 @@ CMakeLists.txt.user*
 /build*/
 data/kanflowsettings.json
 .data/
+.vscode/launch.json

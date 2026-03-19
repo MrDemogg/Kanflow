@@ -5,10 +5,11 @@ from PySide6.QtCore import QSize, Qt
 from App.services import BoardKeys, DataManager
 from App.widgets import ClickableWidget
 from collections.abc import Callable
+from App import utils
 
 class HomePage(Page):
 
-    def __init__(self, datamanager: DataManager = None, navigateHandle: Callable[[str], None] = None, dataTransfer: Callable[[str, dict], None] = None):
+    def __init__(self, datamanager: DataManager, navigateHandle: Callable[[str], None], dataTransfer: Callable[[str, dict], None]):
         super().__init__(datamanager, navigateHandle, dataTransfer)
 
         layout = QVBoxLayout(self)
@@ -110,3 +111,7 @@ class HomePage(Page):
 
     def acceptData(self, data):
         return super().acceptData(data)
+    
+    def open(self):
+        wsize = QSize(500, 500)
+        utils.setSizeCentered(self.window(), wsize)

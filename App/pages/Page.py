@@ -22,6 +22,11 @@ class Page(QWidget):
         """Принятие данных"""
         pass
 
+    @abstractmethod
+    def open(self):
+        """Что-то что должно происходить при открытии страницы"""
+        pass
+
 class Pages(StrEnum):
     HOME = "home"
     BOARD = "board"
