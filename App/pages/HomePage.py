@@ -1,4 +1,4 @@
-from .Page import Page
+from .Page import Page, Pages
 from .BoardCreationPage import BoardCreationPage
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QPushButton, QScrollArea, QWidget, QHBoxLayout
 from App.services import BoardKeys, DataManager
@@ -43,7 +43,6 @@ class HomePage(Page):
                 widget.deleteLater()
 
     def updateBoardsList(self):
-        print("Данные в datamanager:", self.datamanager.data)
         boards: dict[str, dict[str, any]] = self.datamanager.data
 
         self._clearBoardsList()
@@ -73,8 +72,9 @@ class HomePage(Page):
     
 
     def selectBoard(self, key: str) -> None: 
-        self.dataTransfer(key, {"bid": key})
-        self.navigateHandle(key)
+        print(key)
+        self.dataTransfer(Pages.BOARD, {"bid": key})
+        self.navigateHandle(Pages.BOARD)
 
 
     def _createDialog(self):
@@ -86,5 +86,5 @@ class HomePage(Page):
             self.datamanager.createTable(boardCreation.title, boardCreation.desc)
             self.updateBoardsList()
 
-    def acceptData(data):
-        return super().acceptData()
+    def acceptData(self, data):
+        return super().acceptData(data)

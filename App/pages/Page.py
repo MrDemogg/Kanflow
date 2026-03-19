@@ -1,12 +1,13 @@
 from PySide6.QtWidgets import QWidget
 from App.services import DataManager
 from collections.abc import Callable
-from abc import ABC, abstractmethod # ABC обязательный класс для создания классов с абстрактными методами
+from abc import abstractmethod # ABC обязательный класс для создания классов с абстрактными методами
+from enum import StrEnum
 
 # Базовый класс для всех страниц приложения, хотя не уверен, что он нужен, 
 # но пока пусть будет, может потом пригодится для общих методов и свойств страниц
 
-class Page(QWidget, ABC):
+class Page(QWidget):
     datamanager: DataManager | None = None
     navigateHandle: Callable[[str], None] = None
     dataTransfer: Callable[[str, dict], None] = None
@@ -20,3 +21,7 @@ class Page(QWidget, ABC):
     def acceptData(self, data: dict):
         """Принятие данных"""
         pass
+
+class Pages(StrEnum):
+    HOME = "home"
+    BOARD = "board"

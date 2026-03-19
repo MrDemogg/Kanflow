@@ -2,7 +2,7 @@ from PySide6.QtGui import QColor, QPixmap
 from PySide6.QtWidgets import QStackedWidget, QVBoxLayout, QWidget
 from qframelesswindow import FramelessWindow, StandardTitleBar
 from App.services import DataManager
-from App.pages import BoardPage, HomePage, Page
+from App.pages import BoardPage, HomePage, Page, Pages
 
 class CustomTitleBar(StandardTitleBar):
     def __init__(self, parent):
@@ -16,7 +16,6 @@ class CustomTitleBar(StandardTitleBar):
         self.closeBtn.setHoverColor(QColor(255, 102, 102))
         self.setIcon(QPixmap("ui/ico512.png"))
         self.setTitle("Kanflow")
-
 
 
 class MainWindow(FramelessWindow):
@@ -52,12 +51,11 @@ class MainWindow(FramelessWindow):
         self.datamanager = DataManager()
 
         self.pages: dict[str, Page] = {
-            "home": HomePage(self.datamanager, self.handleNavigation, self.dataTransfer),
-            "board": BoardPage(datamanager=self.datamanager)
+            Pages.HOME: HomePage(self.datamanager, self.handleNavigation, self.dataTransfer),
+            Pages.BOARD: BoardPage(datamanager=self.datamanager)
         }
 
         for page in self.pages.values():
-            page.navigateTo.connect(self.handleNavigation)
             self.stack.addWidget(page)
         
         self.stack.setCurrentIndex(0)
@@ -68,14 +66,12 @@ class MainWindow(FramelessWindow):
 
         self.titleBar.raise_()
 
-        self.switch_page("home")
-
     # def switch_page(self, page_name: str):
     #     if page_name in self.pages:
     #         self.stack.setCurrentWidget(self.pages[page_name])
 
     def handleNavigation(self, pageName: str):
-        pass
+        self.stack.setCurrentWidget(self.pages[pageName])
     
     def dataTransfer(self, consumer: str, data: dict):
-        pass
+        self.pages[consumer].acceptData(data)

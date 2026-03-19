@@ -1,5 +1,4 @@
-from .mainwindow import MainWindow
+from .mainwindow import MainWindow, CustomTitleBar
 from .window import Window
-from .mainwindow import CustomTitleBar
 
 __all__ = ["MainWindow", "Window", "CustomTitleBar"]
