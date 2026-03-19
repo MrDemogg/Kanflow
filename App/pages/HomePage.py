@@ -66,7 +66,8 @@ class HomePage(Page):
             boardLay.addWidget(boardId)
             boardLay.addWidget(desc)
 
-            boardWidget.clicked.connect(lambda: self.selectBoard(key))
+            boardWidget.clicked.connect(lambda k=key: self.selectBoard(k)) # оказывается ламбда не запоминает значения, а лишь присваивает ссылки, вот те раз
+            # благо славненький чат джпт подсказал что от этого можно избавится если присвоить параметр другому параметру
 
             self.boardsListLay.addWidget(boardWidget)
     
