@@ -3,7 +3,7 @@ from PySide6.QtWidgets import QSizePolicy, QVBoxLayout, QLabel, QPushButton, QHB
 from App.services import DataManager
 from collections.abc import Callable
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QPixmap, QFont
+from PySide6.QtGui import QIcon, QFont
 from App.widgets import BoardColumnWidget
 from App import utils
 
@@ -40,7 +40,7 @@ class BoardPage(Page):
         topRow.setSpacing(15)
 
         self.leaveBtn = QPushButton()
-        self.leaveBtn.setIcon(QPixmap("ui/left.png"))
+        self.leaveBtn.setIcon(QIcon(utils.resource_path("ui/left.png")))
         self.leaveBtn.setIconSize(QSize(50, 50))
         self.leaveBtn.setMinimumSize(60, 60)
         self.leaveBtn.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
@@ -69,7 +69,7 @@ class BoardPage(Page):
 
         # ─── Кнопка Options — растягивается на всю высоту header ───
         self.optionBtn = QPushButton()
-        self.optionBtn.setIcon(QPixmap("ui/options.png"))
+        self.optionBtn.setIcon(QIcon(utils.resource_path("ui/options.png")))
         self.optionBtn.setIconSize(QSize(58, 58))
         self.optionBtn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
         self.optionBtn.setMinimumWidth(80)

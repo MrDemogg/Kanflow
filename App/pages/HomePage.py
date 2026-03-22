@@ -2,7 +2,7 @@ from .Page import Page, Pages
 from .BoardCreationPage import BoardCreationPage
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QPushButton, QScrollArea, QWidget, QHBoxLayout, QLayout
 from PySide6.QtCore import QSize, Qt, QPoint, QTimer
-from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QIcon
 from App.services import DataManager, Board
 from App.widgets import ClickableWidget
 from collections.abc import Callable
@@ -17,7 +17,7 @@ class HomePage(Page):
         layout.setContentsMargins(0, 20, 0, 0)
         self.createBtn = QPushButton(parent=self)
         self.createBtn.clicked.connect(self._createDialog)
-        self.createBtn.setIcon(QPixmap("ui/createboard.png"))
+        self.createBtn.setIcon(QIcon(utils.resource_path("ui/createboard.png")))
         self.createBtn.setIconSize(QSize(80, 80))
         self.createBtn.adjustSize()
 

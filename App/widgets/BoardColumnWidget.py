@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QWidget, QScrollArea, QVBoxLayout, QSizePolicy, QHBoxLayout, QPushButton
 from PySide6.QtCore import Qt, QSize
-from PySide6.QtGui import QFont, QPixmap
+from PySide6.QtGui import QFont, QIcon
 from .EditableLabel import EditableLabel
 from App.services import DataManager
 from App import Window, utils
@@ -58,19 +58,21 @@ class BoardColumnWidget(QWidget):
 
         if not isMirror:
             self.externalBtn = QPushButton()
-            self.externalBtn.setIcon(QPixmap("ui/external.png"))
+            externalNormalIcon = QIcon(utils.resource_path("ui/external.png"))
+            externalHoveredIcon = QIcon(utils.resource_path("ui/external2.png"))
+            self.externalBtn.setIcon(externalNormalIcon)
+            self.externalBtn.enterEvent = lambda e: self.externalBtn.setIcon(externalHoveredIcon)
+            self.externalBtn.leaveEvent = lambda e: self.externalBtn.setIcon(externalNormalIcon)
             self.externalBtn.setIconSize(imgSize)
             self.externalBtn.setFixedSize(imgSize)
             self.externalBtn.clicked.connect(self._copyInWindow)
             self.externalBtn.setObjectName("externalBtn")
             self.externalBtn.setStyleSheet("""
-                                    QPushButton#externalBtn {
-                                        border: none;
-                                        icon: url(ui/external.png);
-                                    }
-                                    QPushButton#externalBtn:hover {
-                                        icon: url(ui/external2.png)
-                                    }""")
+                QPushButton#externalBtn {
+                    background: transparent;
+                    border: none;
+                }
+            """)
             self.mirrorWindow = Window(title="Столб")
             self.mirrorWindow.closing.connect(self.externalBtn.show)
             mirrorTitleBar: CustomTitleBar = self.mirrorWindow.titleBar
@@ -79,7 +81,7 @@ class BoardColumnWidget(QWidget):
             header.addWidget(self.externalBtn, stretch=1)
         else:
             self.pinBtn = QPushButton()
-            self.pinBtn.setIcon(QPixmap("ui/pin96.png"))
+            self.pinBtn.setIcon(QIcon(utils.resource_path("ui/pin96.png")))
             self.pinBtn.setIconSize(imgSize)
             self.pinBtn.setFixedSize(imgSize)
             self.pinBtn.setObjectName("pinBtn")

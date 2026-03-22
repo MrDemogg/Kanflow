@@ -1,9 +1,9 @@
-from PySide6.QtGui import QColor, QPixmap
+from PySide6.QtGui import QColor, QIcon
 from PySide6.QtWidgets import QStackedWidget, QVBoxLayout, QWidget, QApplication
 from qframelesswindow import StandardTitleBar, FramelessMainWindow
 from App.services import DataManager
 from App.pages import BoardPage, HomePage, Page, Pages
-from .window import Window
+from . import utils
 
 class CustomTitleBar(StandardTitleBar):
     def __init__(self, parent, title: str, icon: str = "ui/ico512.png"):
@@ -15,7 +15,7 @@ class CustomTitleBar(StandardTitleBar):
         self.maxBtn.setHoverColor(QColor(144, 238, 144))
         self.closeBtn.setHoverBackgroundColor(QColor(255, 255,255))
         self.closeBtn.setHoverColor(QColor(255, 102, 102))
-        self.setIcon(QPixmap(icon))
+        self.setIcon(QIcon(utils.resource_path(icon)))
         self.setTitle(title)
 
 
