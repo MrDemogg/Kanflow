@@ -21,6 +21,8 @@ class BoardColumnWidget(QWidget):
         self.dataManager = dataManager
         self.title = title
 
+        self.mirrorWindow: Window = None
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -132,7 +134,7 @@ class BoardColumnWidget(QWidget):
         self.setFixedWidth(280)
 
     def changeColumnTitle(self, newTitle):
-        columns = self.dataManager.data[self.bid].columns
+        columns = self.dataManager.data.boards[self.bid].columns
         currColumnIndex = -1
         for i in range(len(columns)):
             if columns[i].title == self.title:
@@ -169,3 +171,17 @@ class BoardColumnWidget(QWidget):
         self.mirrorWindow.setFixedWidth(self.width())
         self.mirrorWindow.setFixedHeight(self.height() + 30)
         self.mirrorWindow.show()
+        for btn in self.mirrorWindow.titleBar.findChildren(QWidget):
+            btn.clearFocus()
+    
+    def deleteLater(self):
+        if self.mirrorWindow is None:
+            return
+        self.mirrorWindow.close()
+        return super().deleteLater()
+
+    def updateData(self, bid: str = None, title: str = None):
+        self.bid = self.bid if bid is None else bid
+        self.title = self.title if title is None else title
+        self.titleLabel.setText(self.title)
+        if (self.mirrorWindow.isVisible()): self._copyInWindow()

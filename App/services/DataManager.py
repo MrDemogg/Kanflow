@@ -72,6 +72,22 @@ class Board:
             BoardKeys.COLUMNS: [c.toDict() for c in self.columns]
         }
     
+class Database:
+    def __init__(self, boards: dict[str, Board] | dict[str, dict[str, any]] = None, tags: list[str] = None, workers: list[str] = None):
+        if (isinstance(boards, dict) and all(isinstance(x, dict) for x in boards.values())):
+            dBoards: dict[str, dict[str, any]] = boards
+            self.boards = {k: Board(v[BoardKeys.TITLE], v[BoardKeys.DESCRIPTION], v[BoardKeys.COLUMNS]) for k, v in dBoards.items()}
+        else: self.boards = boards or {}
+        self.tags = tags or []
+        self.workers = workers or []
+    
+    def toDict(self):
+        return {
+            DataKeys.BOARDS: {k: v.toDict() for k, v in self.boards.items()},
+            DataKeys.TAGS: self.tags,
+            DataKeys.WORKERS: self.workers
+        }
+    
 
 class DataManager:
     """
@@ -109,55 +125,46 @@ class DataManager:
     ]
     """
     
-    data: dict[str, Board] = {}
+    data: Database = None
 
-    def __init__(self, file_path="data/kanflowsettings.json"):
+    def __init__(self, file_path="data/kanflowdata.json"):
         self.file = Path(file_path)
         self._load()
 
     def _load(self) -> dict[str, Board]:
         if self.file.exists():
-            data: dict[str, dict[str, any]] = json.loads(self.file.read_text(encoding="utf-8"))
-            self.data = {k: Board(v[BoardKeys.TITLE], v[BoardKeys.DESCRIPTION], v[BoardKeys.COLUMNS]) for k, v in data.items()}
+            data: dict[str, any] = json.loads(self.file.read_text(encoding="utf-8"))
+            boardsData: dict[str, dict[str, any]] = data[DataKeys.BOARDS]
+            tagsData: dict[str] = data[DataKeys.TAGS]
+            workersData: dict[str] = data[DataKeys.WORKERS]
+            self.data = Database(boardsData, tagsData, workersData)
+        else: self.data = Database()
 
     def save(self):
         self.file.parent.mkdir(parents=True, exist_ok=True)
-        data = {k: v.toDict() for k, v in self.data.items()}
-        self.file.write_text(json.dumps(data, ensure_ascii=True, indent=2))
+        self.file.write_text(json.dumps(self.data.toDict(), ensure_ascii=True, indent=2))
+    
+    def uniqueBid(self, title: str) -> str:
+        similartitlescount = sum(1 for t in self.data.boards.values() if t.title == title)
+        id = title if self.data.boards.get(title) is None else f"{title} ({similartitlescount})"
+        id.split()
+        return id
 
     def createBoard(self, title: str, description: str = ""):
-        similartitlescount = sum(1 for t in self.data.values() if t.title == title)
-        id = title if self.data.get(title) is None else f"{title} ({similartitlescount})"
-        id.split()
-        # self.data[id] = {
-        #     BoardKeys.TITLE: title,
-        #     BoardKeys.DESCRIPTION: description,
-        #     BoardKeys.COLUMNS: [
-        #         {
-        #             ColumnKeys.POS: 0,
-        #             ColumnKeys.TITLE: "To Do",
-        #             ColumnKeys.TASKS: []
-        #         },
-        #         {
-        #             ColumnKeys.POS: 1,
-        #             ColumnKeys.TITLE: "In Work",
-        #             ColumnKeys.TASKS: []
-        #         },
-        #         {
-        #             ColumnKeys.POS: 2,
-        #             ColumnKeys.TITLE: "Done",
-        #             ColumnKeys.TASKS: []
-        #         }
-        #     ]
-        # }
+        id = self.uniqueBid(title)
 
-        self.data[id] = Board(title, description, [Column("To Do"), Column("In Work"), Column("Done")])
+        self.data.boards[id] = Board(title, description, [Column("To Do"), Column("In Work"), Column("Done")])
 
         self.save()
 
 
 # с созданием классов в начале файла нижние enum'ы вряд ли будут использоваться, устарели, но пусть будут пока
 # о я знаю, они нужны будут для сохранения в json
+
+class DataKeys(StrEnum):
+    BOARDS = "boards"
+    TAGS = "tags"
+    WORKERS = "workers"
 
 class BoardKeys(StrEnum):
     TITLE = "title"

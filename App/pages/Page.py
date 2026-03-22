@@ -8,9 +8,6 @@ from enum import StrEnum
 # но пока пусть будет, может потом пригодится для общих методов и свойств страниц
 
 class Page(QWidget):
-    datamanager: DataManager | None = None
-    navigateHandle: Callable[[str], None] = None
-    dataTransfer: Callable[[str, dict], None] = None
     def __init__(self, datamanager_: DataManager = None, navigateHandle_: Callable[[str], None] = None, dataTransfer_: Callable[[str, dict], None] = None):
         super().__init__()
         self.datamanager = datamanager_

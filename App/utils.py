@@ -6,7 +6,9 @@ import os
 def setSizeCentered(window: QWidget, size: QSize):
     center = window.frameGeometry().center()
 
+    window.setMinimumSize(size)
     window.resize(size)
+    window.setBaseSize(size)
 
     frame = window.frameGeometry()
     frame.moveCenter(center)

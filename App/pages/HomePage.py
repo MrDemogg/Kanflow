@@ -7,6 +7,7 @@ from App.services import DataManager, Board
 from App.widgets import ClickableWidget
 from collections.abc import Callable
 from App import utils
+from qframelesswindow import FramelessMainWindow
 
 class HomePage(Page):
 
@@ -14,7 +15,7 @@ class HomePage(Page):
         super().__init__(datamanager, navigateHandle, dataTransfer)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 20, 0, 0)
+        layout.setContentsMargins(0, 30, 0, 0)
         self.createBtn = QPushButton(parent=self)
         self.createBtn.clicked.connect(self._createDialog)
         self.createBtn.setIcon(QIcon(utils.resource_path("ui/createboard.png")))
@@ -40,7 +41,6 @@ class HomePage(Page):
                                            }""")
 
         scroll.setWidget(self.boardsContainer)
-
         layout.addStretch()
         layout.addWidget(scroll, stretch=1)
         # btn.clicked.connect(lambda: switch_page_callback("board") if switch_page_callback else None)
@@ -70,7 +70,7 @@ class HomePage(Page):
     #             widget.deleteLater()
 
     def updateBoardsList(self):
-        boards: dict[str, Board] = self.datamanager.data
+        boards: dict[str, Board] = self.datamanager.data.boards
 
         utils.clearLayoutWidgets(self.boardsListLay)
 
@@ -125,8 +125,8 @@ class HomePage(Page):
 
 
     def _createDialog(self):
-        boardCreation = BoardCreationPage(self.window())
-        boardCreation.setFixedSize(QSize(512,512))
+        boardCreation = BoardCreationPage(self.datamanager, self.window())
+        boardCreation.setFixedSize(QSize(512,800))
         status = boardCreation.exec()
         if status == 1:
             self.datamanager.createBoard(boardCreation.title, boardCreation.desc)
@@ -137,4 +137,8 @@ class HomePage(Page):
     
     def open(self):
         wsize = QSize(500, 500)
+        mainw: FramelessMainWindow = self.window()
+        mainw.titleBar.maxBtn.hide()
         utils.setSizeCentered(self.window(), wsize)
+        self.updateBoardsList()
+# 42

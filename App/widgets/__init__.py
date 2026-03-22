@@ -6,5 +6,6 @@
 from .ClickableWidget import ClickableWidget
 from .BoardColumnWidget import BoardColumnWidget
 from .EditableLabel import EditableLabel
+from .DeletableLabel import DeletableLabel
 
-__all__ = ["ClickableWidget", "BoardColumnWidget", "EditableLabel"]
+__all__ = ["ClickableWidget", "BoardColumnWidget", "EditableLabel", "DeletableLabel"]

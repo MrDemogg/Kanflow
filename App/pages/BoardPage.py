@@ -6,9 +6,15 @@ from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon, QFont
 from App.widgets import BoardColumnWidget
 from App import utils
+from .BoardCreationPage import BoardCreationPage
+from qframelesswindow import FramelessMainWindow
 
 class BoardPage(Page):
     boardId = ""
+
+    def _leavePage(self):
+        utils.clearLayoutWidgets(self.columnsLay)
+        self.navigateHandle(Pages.HOME)
     
     def __init__(self, datamanager: DataManager, navigateHandle: Callable[[str], None]):
         super().__init__(datamanager, navigateHandle, None)
@@ -44,7 +50,7 @@ class BoardPage(Page):
         self.leaveBtn.setIconSize(QSize(50, 50))
         self.leaveBtn.setMinimumSize(60, 60)
         self.leaveBtn.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        self.leaveBtn.clicked.connect(lambda: navigateHandle(Pages.HOME))
+        self.leaveBtn.clicked.connect(self._leavePage)
 
         self.title = QLabel("Доска не найдена")
         self.title.setFont(QFont("Segoe UI", 30, QFont.Weight.Bold))
@@ -74,6 +80,7 @@ class BoardPage(Page):
         self.optionBtn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
         self.optionBtn.setMinimumWidth(80)
         self.optionBtn.setMinimumHeight(60)
+        self.optionBtn.pressed.connect(self.boardOptions)
 
         headerLay.addWidget(self.optionBtn)
 
@@ -123,10 +130,38 @@ class BoardPage(Page):
     #             widget.setParent(None)
     #             widget.deleteLater()
     
+    def boardOptions(self):
+        boardOptWindow = BoardCreationPage(self.datamanager, self.window())
+        boardOptWindow.setFixedSize(QSize(512, 800))
+        boardOptWindow.titleForm.setText(self.title.text())
+        boardOptWindow.descForm.setPlainText(self.desc.toPlainText())
+
+        status = boardOptWindow.exec()
+
+        if status == 1:
+            newTitle = boardOptWindow.title
+            newDesc = boardOptWindow.desc
+            newId = self.datamanager.uniqueBid(newTitle)
+
+            boardData = self.datamanager.data.boards[self.boardId]
+            boardData.title = newTitle
+            boardData.description = newDesc
+
+            self.title.setText(newTitle)
+            self.desc.setPlainText(newDesc)
+
+            self.datamanager.data.boards[newId] = self.datamanager.data.boards.pop(self.boardId)
+            self.boardId = newId
+            for i in range(self.columnsLay.count()):
+                item = self.columnsLay.itemAt(i)
+                widget = item.widget()
+                if isinstance(widget, BoardColumnWidget):
+                    widget.updateData(newId, widget.title)
+
     def update(self):
         utils.clearLayoutWidgets(self.columnsLay)
         
-        if self.boardId not in self.datamanager.data:
+        if self.boardId not in self.datamanager.data.boards:
             self.title.setText("Доска не найдена")
             self.desc.setPlainText("")
             self.optionBtn.hide()
@@ -134,7 +169,7 @@ class BoardPage(Page):
         
         self.optionBtn.show()
 
-        board = self.datamanager.data[self.boardId]
+        board = self.datamanager.data.boards[self.boardId]
         self.title.setText(board.title)
         self.desc.setPlainText(board.description)
 
@@ -144,6 +179,8 @@ class BoardPage(Page):
 
     def open(self):
         wsize = QSize(1080, 720)
+        mainw: FramelessMainWindow = self.window()
+        mainw.titleBar.maxBtn.show()
         utils.setSizeCentered(self.window(), wsize)
 
     def acceptData(self, data: dict):

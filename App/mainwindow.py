@@ -57,14 +57,14 @@ class MainWindow(FramelessMainWindow):
 
         for page in self.pages.values():
             self.stack.addWidget(page)
-        
-        self.stack.setCurrentIndex(0)
 
         mainlay.addWidget(self.stack, stretch=1)
 
         self.setCentralWidget(central)
 
         self.titleBar.raise_()
+
+        self.handleNavigation(Pages.HOME)
     
     def closeEvent(self, event):
         self.datamanager.save()
