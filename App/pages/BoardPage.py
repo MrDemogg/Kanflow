@@ -1,8 +1,10 @@
 from App.pages import Page, Pages
-from PySide6.QtWidgets import QVBoxLayout, QLabel, QPushButton
-from App.services import BoardKeys, DataManager
+from PySide6.QtWidgets import QSizePolicy, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QPlainTextEdit, QWidget, QScrollArea
+from App.services import DataManager
 from collections.abc import Callable
-from PySide6.QtCore import QSize
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QPixmap, QFont
+from App.widgets import BoardColumnWidget
 from App import utils
 
 class BoardPage(Page):
@@ -11,24 +13,134 @@ class BoardPage(Page):
     def __init__(self, datamanager: DataManager, navigateHandle: Callable[[str], None]):
         super().__init__(datamanager, navigateHandle, None)
 
+        # Основной layout страницы
         layout = QVBoxLayout(self)
-        self.title = QLabel("Board not found")
-        leaveBtn = QPushButton("Вернутся в меню")
-        leaveBtn.clicked.connect(lambda: navigateHandle(Pages.HOME))
-        leaveBtn.setFixedWidth(150)
-        leaveBtn.setFixedHeight(50)
-        layout.addWidget(leaveBtn)
-        layout.addWidget(self.title)
-        layout.setContentsMargins(40, 40, 40, 40)
+        layout.setContentsMargins(20, 40, 40, 20)
+        layout.setSpacing(5)
+
+        # ==================== HEADER (растягивается пропорционально) ====================
+        headerContainer = QWidget()
+        headerContainer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        headerContainer.setMinimumHeight(160)
+
+        headerLay = QHBoxLayout(headerContainer)
+        headerLay.setContentsMargins(0, 0, 0, 0)
+        headerLay.setSpacing(20)
+
+        # ─── Левая часть — ровный прямоугольник (leaveBtn + title + desc) ───
+        leftWidget = QWidget()
+        leftWidget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        leftLayout = QVBoxLayout(leftWidget)
+        leftLayout.setContentsMargins(0, 0, 0, 0)
+        leftLayout.setSpacing(12)
+
+        # Верхняя строка: кнопка (1/3) + title (2/3)
+        topRow = QHBoxLayout()
+        topRow.setSpacing(15)
+
+        self.leaveBtn = QPushButton()
+        self.leaveBtn.setIcon(QPixmap("ui/left.png"))
+        self.leaveBtn.setIconSize(QSize(50, 50))
+        self.leaveBtn.setMinimumSize(60, 60)
+        self.leaveBtn.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        self.leaveBtn.clicked.connect(lambda: navigateHandle(Pages.HOME))
+
+        self.title = QLabel("Доска не найдена")
+        self.title.setFont(QFont("Segoe UI", 30, QFont.Weight.Bold))
+        self.title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+
+        topRow.addWidget(self.leaveBtn, stretch=0)
+        topRow.addWidget(self.title, stretch=2)
+
+        leftLayout.addLayout(topRow)
+
+        # Описание — растягивается по высоте вместе с header
+        self.desc = QPlainTextEdit()
+        self.desc.setReadOnly(True)
+        self.desc.setFont(QFont("Segoe UI", 20))
+        self.desc.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.desc.setMinimumHeight(80)                  # ← только минимум
+        self.desc.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
+        leftLayout.addWidget(self.desc, stretch=1)
+
+        headerLay.addWidget(leftWidget, stretch=1)
+
+        # ─── Кнопка Options — растягивается на всю высоту header ───
+        self.optionBtn = QPushButton()
+        self.optionBtn.setIcon(QPixmap("ui/options.png"))
+        self.optionBtn.setIconSize(QSize(58, 58))
+        self.optionBtn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
+        self.optionBtn.setMinimumWidth(80)
+        self.optionBtn.setMinimumHeight(60)
+
+        headerLay.addWidget(self.optionBtn)
+
+        # ==================== Сплошная белая линия ====================
+        headerLine = QWidget()
+        headerLine.setFixedHeight(2)
+        headerLine.setStyleSheet("background-color: white;")
+
+        # ==================== Добавляем в основной layout ====================
+        layout.addWidget(headerContainer, stretch=2)      # header получает ~20% высоты окна
+        layout.addWidget(headerLine)
+
+        # Основной контент страницы (растягивается на всё оставшееся пространство)
+        # contentArea = QWidget()
+        # contentArea.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        # layout.addWidget(self.contentArea, stretch=8)    # контент получает ~80% высоты
+
+        # -----------------------------
+
+        columnsScroll = QScrollArea()
+        columnsScroll.setWidgetResizable(True)
+        columnsScroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        columnsScroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+        columns = QWidget()
+        columns.setObjectName("columns")
+        columns.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        
+        self.columnsLay = QHBoxLayout(columns)
+        self.columnsLay.setSpacing(20)
+        self.columnsLay.setContentsMargins(10, 10, 10, 10)
+        columns.setStyleSheet("""
+                              QWidget#columns{
+                                background-color: #184B57;
+                              }""")
+
+        columns.setContentsMargins(0, 0, 0, 0)
+        columnsScroll.setWidget(columns)
+
+        layout.addWidget(columnsScroll, stretch=8)
+
+    # def _clearColumns(self):
+    #     while self.columnsLay.count():
+    #         item = self.columnsLay.takeAt(0)
+    #         widget = item.widget()
+    #         if widget:
+    #             widget.setParent(None)
+    #             widget.deleteLater()
     
     def update(self):
-        if (self.boardId not in self.datamanager.data):
+        utils.clearLayoutWidgets(self.columnsLay)
+        
+        if self.boardId not in self.datamanager.data:
+            self.title.setText("Доска не найдена")
+            self.desc.setPlainText("")
+            self.optionBtn.hide()
             return
+        
+        self.optionBtn.show()
 
         board = self.datamanager.data[self.boardId]
+        self.title.setText(board.title)
+        self.desc.setPlainText(board.description)
 
-        self.title.setText(board[BoardKeys.TITLE])
-        self.title.setBaseSize(20, 20)
+        for columnData in board.columns:
+            columnWidget = BoardColumnWidget(self.boardId, columnData.title, self.datamanager)
+            self.columnsLay.addWidget(columnWidget)
 
     def open(self):
         wsize = QSize(1080, 720)

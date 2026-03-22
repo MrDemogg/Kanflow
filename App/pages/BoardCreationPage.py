@@ -10,7 +10,7 @@ class BoardCreationPage(FramelessDialog):
         super().__init__(parent)
 
         from App import CustomTitleBar # видимо CustomTitleBar не успевает подготовится если импортировать в начале файла, так что так
-        self.setWindowTitle("Create")
+        self.setWindowTitle("Настройка доски")
         self.setObjectName("window")
         self.setSystemTitleBarButtonVisible(False)
         self.setStyleSheet("""
@@ -18,7 +18,7 @@ class BoardCreationPage(FramelessDialog):
             background-color: #212121;
         }
         """)
-        self.setTitleBar(CustomTitleBar(self, "Создание доски"))
+        self.setTitleBar(CustomTitleBar(self, "Настройка доски"))
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 50, 24, 24)
@@ -80,7 +80,7 @@ class BoardCreationPage(FramelessDialog):
     
     def _descFormLimit(self):
         text = self.descForm.toPlainText()
-        maxFormLen = 100
+        maxFormLen = 50
         if len(text) > maxFormLen:
             cursor = self.descForm.textCursor()
             cursor.movePosition(QTextCursor.MoveOperation.End)

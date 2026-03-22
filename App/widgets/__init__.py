@@ -4,5 +4,7 @@
 
 # И не только стилизованные виджеты получается
 from .ClickableWidget import ClickableWidget
+from .BoardColumnWidget import BoardColumnWidget
+from .EditableLabel import EditableLabel
 
-__all__ = ["ClickableWidget"]
+__all__ = ["ClickableWidget", "BoardColumnWidget", "EditableLabel"]

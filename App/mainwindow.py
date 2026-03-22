@@ -1,8 +1,9 @@
 from PySide6.QtGui import QColor, QPixmap
-from PySide6.QtWidgets import QStackedWidget, QVBoxLayout, QWidget
-from qframelesswindow import FramelessWindow, StandardTitleBar
+from PySide6.QtWidgets import QStackedWidget, QVBoxLayout, QWidget, QApplication
+from qframelesswindow import StandardTitleBar, FramelessMainWindow
 from App.services import DataManager
 from App.pages import BoardPage, HomePage, Page, Pages
+from .window import Window
 
 class CustomTitleBar(StandardTitleBar):
     def __init__(self, parent, title: str, icon: str = "ui/ico512.png"):
@@ -18,7 +19,7 @@ class CustomTitleBar(StandardTitleBar):
         self.setTitle(title)
 
 
-class MainWindow(FramelessWindow):
+class MainWindow(FramelessMainWindow):
 
     stack: QStackedWidget
     pages: dict[str, QWidget]
@@ -30,7 +31,7 @@ class MainWindow(FramelessWindow):
         self.setSystemTitleBarButtonVisible(False)
         self.setStyleSheet("""
         #window { 
-            background-color: #212121;
+            background-color: #184B57;
         }
         """)
         self.setTitleBar(CustomTitleBar(self, "Kanflow"))
@@ -61,9 +62,16 @@ class MainWindow(FramelessWindow):
 
         mainlay.addWidget(self.stack, stretch=1)
 
-        self.setLayout(mainlay)
+        self.setCentralWidget(central)
 
         self.titleBar.raise_()
+    
+    def closeEvent(self, event):
+        self.datamanager.save()
+        for widget in QApplication.topLevelWindows():
+            if widget is not self:
+                widget.close()
+        return super().closeEvent(event)
 
     # def switch_page(self, page_name: str):
     #     if page_name in self.pages:
