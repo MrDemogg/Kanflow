@@ -9,9 +9,9 @@ class Window(FramelessWindow):
     closing = Signal()
     def __init__(self, parent=None, title = "Kanflow"):
         super().__init__(parent)
-        from App import CustomTitleBar # видимо CustomTitleBar не успевает подготовится если импортировать в начале файла, так что так
+        from App import DefaultTitleBar # видимо CustomTitleBar не успевает подготовится если импортировать в начале файла, так что так
         self.setSystemTitleBarButtonVisible(False)
-        self.setTitleBar(CustomTitleBar(self, title))
+        self.setTitleBar(DefaultTitleBar(self, title))
 
         central = QWidget()
         mainlay = QVBoxLayout(central)

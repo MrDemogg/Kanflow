@@ -6,7 +6,7 @@ from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon, QFont
 from App.widgets import BoardColumnWidget
 from App import utils
-from .BoardCreationPage import BoardCreationPage
+from App.dialogs import CreationDialog
 from qframelesswindow import FramelessMainWindow
 
 class BoardPage(Page):
@@ -131,8 +131,8 @@ class BoardPage(Page):
     #             widget.deleteLater()
     
     def boardOptions(self):
-        boardOptWindow = BoardCreationPage(self.datamanager, self.window())
-        boardOptWindow.setFixedSize(QSize(512, 800))
+        boardOptWindow = CreationDialog(self.window())
+        boardOptWindow.setFixedSize(QSize(512, 512))
         boardOptWindow.titleForm.setText(self.title.text())
         boardOptWindow.descForm.setPlainText(self.desc.toPlainText())
 
@@ -141,7 +141,7 @@ class BoardPage(Page):
         if status == 1:
             newTitle = boardOptWindow.title
             newDesc = boardOptWindow.desc
-            newId = self.datamanager.uniqueBid(newTitle)
+            newId = utils.uniqueId(newTitle, [board.title for board in self.datamanager.data.boards.values()])
 
             boardData = self.datamanager.data.boards[self.boardId]
             boardData.title = newTitle
@@ -158,7 +158,7 @@ class BoardPage(Page):
                 if isinstance(widget, BoardColumnWidget):
                     widget.updateData(newId, widget.title)
 
-    def update(self):
+    def refresh(self):
         utils.clearLayoutWidgets(self.columnsLay)
         
         if self.boardId not in self.datamanager.data.boards:
@@ -186,4 +186,4 @@ class BoardPage(Page):
     def acceptData(self, data: dict):
         if "bid" in data.keys():
             self.boardId = data["bid"]
-            self.update()
+            self.refresh()

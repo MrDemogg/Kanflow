@@ -1,5 +1,5 @@
 from .Page import Page, Pages
-from .BoardCreationPage import BoardCreationPage
+from App.dialogs import CreationDialog
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QPushButton, QScrollArea, QWidget, QHBoxLayout, QLayout
 from PySide6.QtCore import QSize, Qt, QPoint, QTimer
 from PySide6.QtGui import QIcon
@@ -69,6 +69,13 @@ class HomePage(Page):
     #             widget.setParent(None)
     #             widget.deleteLater()
 
+    def onBoardDelete(self, boardWidget: ClickableWidget, bid: str):
+        boardWidget.hide()
+        boardWidget.deleteLater()
+        self.datamanager.data.boards.pop(bid, None)
+
+        self.datamanager.save()
+
     def updateBoardsList(self):
         boards: dict[str, Board] = self.datamanager.data.boards
 
@@ -105,8 +112,15 @@ class HomePage(Page):
             desc = QLabel("Desc: " + board.description)
             desc.setAlignment(Qt.AlignmentFlag.AlignTop)
             titleLay.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+            deleteBtn = QPushButton()
+            deleteBtn.setIcon(QIcon(utils.resource_path("ui/close.png")))
+            deleteBtn.setIconSize(QSize(20, 20))
+            deleteBtn.clicked.connect(lambda: self.onBoardDelete(boardWidget, key))
+
             boardLay.addLayout(titleLay)
             boardLay.addWidget(desc)
+            boardLay.addWidget(deleteBtn)
             boardLay.setContentsMargins(boardLay.contentsMargins().left(), 20, boardLay.contentsMargins().right(), boardLay.contentsMargins().bottom())
 
             boardWidget.clicked.connect(lambda k=key: self.selectBoard(k)) # оказывается ламбда не запоминает значения, а лишь присваивает ссылки, вот те раз
@@ -125,8 +139,8 @@ class HomePage(Page):
 
 
     def _createDialog(self):
-        boardCreation = BoardCreationPage(self.datamanager, self.window())
-        boardCreation.setFixedSize(QSize(512,800))
+        boardCreation = CreationDialog(self.window())
+        boardCreation.setFixedSize(QSize(512,512))
         status = boardCreation.exec()
         if status == 1:
             self.datamanager.createBoard(boardCreation.title, boardCreation.desc)

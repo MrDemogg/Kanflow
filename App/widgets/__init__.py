@@ -3,9 +3,7 @@
 # ну, если до этого дойдет...
 
 # И не только стилизованные виджеты получается
-from .ClickableWidget import ClickableWidget
-from .BoardColumnWidget import BoardColumnWidget
-from .EditableLabel import EditableLabel
-from .DeletableLabel import DeletableLabel
+from .common import ClickableWidget, EditableLabel, MirrorableWidget
+from .app import BoardColumnWidget, DeletableListLabelItem, EditableListWidget, TaskWidget
 
-__all__ = ["ClickableWidget", "BoardColumnWidget", "EditableLabel", "DeletableLabel"]
+__all__ = ["ClickableWidget", "BoardColumnWidget", "EditableLabel", "DeletableListLabelItem", "EditableListWidget", "TaskWidget", "MirrorableWidget"]

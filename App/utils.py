@@ -14,6 +14,15 @@ def setSizeCentered(window: QWidget, size: QSize):
     frame.moveCenter(center)
     window.move(frame.topLeft())
 
+def uniqueId(id: str, ids: list[str]) -> str:
+    similaridscount = sum(1 for t in ids if t == id)
+    _id = id if similaridscount == 0 else f"{id} ({similaridscount})"
+    _id.split()
+    return _id
+
+def indexByFirstEqual(arr: list, o):
+    return next((i for i in range(arr) if arr[i] == o), -1)
+
 def clearLayoutWidgets(layout: QLayout):
         while layout.count():
             item = layout.takeAt(0)

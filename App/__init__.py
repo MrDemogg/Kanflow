@@ -1,6 +1,6 @@
 from .window import Window
-from .mainwindow import CustomTitleBar
+from .titlebar import DefaultTitleBar
 from .mainwindow import MainWindow
 from . import utils
 
-__all__ = ["CustomTitleBar", "MainWindow", "utils", "Window"]
+__all__ = ["DefaultTitleBar", "MainWindow", "utils", "Window"]
