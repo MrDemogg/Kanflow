@@ -85,3 +85,4 @@ data/kanflowsettings.json
 .data/
 .vscode/launch.json
 .qtcreator
+logs.txt

@@ -11,13 +11,18 @@ from .BoardColumnWidget import BoardColumnWidget
 class TaskWidget(MirrorableWidget):
     _openMirrors= {}
 
-    def __init__(self, column: BoardColumnWidget, title: str, parent=None, original=None):
+    def __init__(self, column: BoardColumnWidget, title: str = None, task: Task = None, parent=None, original=None):
         super().__init__(parent=parent, original=original)
 
         self.column = column
         self.dataManager = column.dataManager
-        self.title = title
-        self.task: Task = self.dataManager.data.boards[self.bid].columns[self.cid].tasks[self.taskIndex()]
+
+        if task is not None:
+            self.task = task
+            self.title = task.title
+        else:
+            self.title = title
+            self.task = self.dataManager.data.boards[self.bid].columns[self.cid].tasks[self.taskIndex()]
 
         layout = QVBoxLayout(self)
 
@@ -158,6 +163,8 @@ class TaskWidget(MirrorableWidget):
         super().mousePressEvent(event)
 
     def taskKey(self):
+        if hasattr(self, 'task') and self.task is not None:
+            return (self.bid, id(self.task))
         return (self.bid, self.cid, self.title)
 
     def mirror(self):
@@ -169,6 +176,7 @@ class TaskWidget(MirrorableWidget):
                 win.raise_()
                 win.activateWindow()
                 return
+            TaskWidget._openMirrors.pop(key, None)
 
         super().mirror()
         TaskWidget._openMirrors[key] = self.mirrorWindow
@@ -176,7 +184,7 @@ class TaskWidget(MirrorableWidget):
     def _mirror(self):
         mirrorLay = self.mirrorWindow.layout()
         utils.clearLayoutWidgets(mirrorLay)
-        mirroredTask = TaskWidget(self.column, self.title, original=self)
+        mirroredTask = TaskWidget(self.column, task=self.task, original=self)
         mirrorLay.addWidget(mirroredTask)
 
         self.mirrorWindow.setMinimumSize(420, 280)
@@ -193,19 +201,25 @@ class TaskWidget(MirrorableWidget):
 
     def onMirrorClose(self):
         key = self.taskKey()
-        TaskWidget._openMirrors.pop(key, None)
+        if key in TaskWidget._openMirrors and TaskWidget._openMirrors[key] is self.mirrorWindow:
+            TaskWidget._openMirrors.pop(key, None)
+
         if not self.column or not self.column.isVisible():
             self.mirrorWindow.close()
         super().onMirrorClose() if hasattr(super(), 'onMirrorClose') else None
 
     def taskIndex(self):
         tasks: list[Task] = self.dataManager.data.boards[self.bid].columns[self.cid].tasks
+        for idx, task in enumerate(tasks):
+            if task is self.task:
+                return idx
+        # fallback by title for backward compatibility
         titles = [t.title for t in tasks]
         return utils.indexByFirstEqual(titles, self.title)
 
     def refresh(self):
-        self.leftBtn.hide()
-        self.rightBtn.hide()
+        if hasattr(self, "leftBtn"): self.leftBtn.hide()
+        if hasattr(self, "rightBtn"): self.rightBtn.hide()
         if self.original:
             self.comments.clear()
             for comment in self.task.comments:

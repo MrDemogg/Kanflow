@@ -149,29 +149,30 @@ class BoardColumnWidget(MirrorableWidget):
         for i in range(self.contentLayout.count()):
             widget = self.contentLayout.itemAt(i).widget()
             if isinstance(widget, TaskWidget):
-                current_widgets[widget.title] = widget
+                current_widgets[widget.taskKey()] = widget
 
         # Remove widgets not in tasks
         to_remove = []
-        for title, widget in current_widgets.items():
-            if not any(t.title == title for t in tasks):
+        for key, widget in current_widgets.items():
+            if not any(id(t) == key[1] for t in tasks):
                 self.contentLayout.removeWidget(widget)
                 widget.deleteLater()
-                to_remove.append(title)
-        for title in to_remove:
-            del current_widgets[title]
+                to_remove.append(key)
+        for key in to_remove:
+            current_widgets.pop(key, None)
 
         # Add new tasks or update existing
-        existing_titles = set(current_widgets.keys())
         for taskData in tasks:
-            if taskData.title not in existing_titles:
-                taskWidget = TaskWidget(self, taskData.title)
+            task_key = (self.bid, id(taskData))
+            if task_key not in current_widgets:
+                taskWidget = TaskWidget(self, task=taskData)
                 self.contentLayout.addWidget(taskWidget)
-                current_widgets[taskData.title] = taskWidget
+                current_widgets[task_key] = taskWidget
             else:
-                # Update existing
-                widget = current_widgets[taskData.title]
+                widget = current_widgets[task_key]
                 widget.task = taskData
+                widget.title = taskData.title
+                widget.titleLabel.setText(widget.title)
                 widget.refresh()
 
     def updateTasks(self):
