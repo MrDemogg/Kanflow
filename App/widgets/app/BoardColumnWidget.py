@@ -1,21 +1,24 @@
 from PySide6.QtWidgets import QWidget, QScrollArea, QVBoxLayout, QSizePolicy, QHBoxLayout, QPushButton, QDateEdit, QCheckBox
 from PySide6.QtCore import Qt, QSize, QDate
 from PySide6.QtGui import QFont, QIcon
+
 from ..common import EditableLabel, MirrorableWidget
-from . import TaskWidget, EditableListWidget
+from .EditableListWidget import EditableListWidget
 from App.dialogs import CreationDialog
 from App.services import DataManager
 from App import utils
 
+
 class BoardColumnWidget(MirrorableWidget):
-
-
-    def __init__(self, bid: str, title: str, dataManager: DataManager, parent=None, isMirror=False):
-        super().__init__(parent=parent, isMirror=isMirror)
+    def __init__(self, bid: str, title: str, dataManager: DataManager, parent=None, original=None):
+        super().__init__(parent=parent, original=original)
 
         self.bid = bid
         self.dataManager = dataManager
         self.title = title
+
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
+        self.setFixedWidth(280)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -29,7 +32,6 @@ class BoardColumnWidget(MirrorableWidget):
 
         layout.addWidget(central)
 
-        # Фон и рамка всего столбца
         self.setStyleSheet("""
             QWidget#Column {
                 background-color: #658C95;
@@ -41,18 +43,23 @@ class BoardColumnWidget(MirrorableWidget):
         # ==================== Заголовок ====================
         header = QHBoxLayout()
         header.setSpacing(10)
-        header.setContentsMargins(0,0,0,0)
+        header.setContentsMargins(0, 0, 0, 0)
         self.titleLabel = EditableLabel(title)
         self.titleLabel.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
         self.titleLabel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.titleLabel.setFixedHeight(60)          # фиксированная высота по вашему требованию
+        self.titleLabel.setFixedHeight(60)
         self.titleLabel.setFont(QFont("Segoe UI", 25))
         self.titleLabel.editingFinished.connect(lambda: self.onTitleLabelEdit(self.titleLabel.text()))
         header.addWidget(self.titleLabel, stretch=2)
 
         imgSize = QSize(50, 50)
 
-        if not self.isMirror:
+        if not self.original:
+            self.deleteBtn = QPushButton()
+            self.deleteBtn.setIcon(QIcon(utils.resource_path("ui/close.png")))
+            self.deleteBtn.clicked.connect(self.deleteColumn)
+            header.addWidget(self.deleteBtn)
+
             self.externalBtn = QPushButton()
             externalNormalIcon = QIcon(utils.resource_path("ui/external.png"))
             externalHoveredIcon = QIcon(utils.resource_path("ui/external2.png"))
@@ -73,7 +80,7 @@ class BoardColumnWidget(MirrorableWidget):
 
         centralLay.addLayout(header)
 
-        # ==================== Область с вертикальным скроллбаром ====================
+        # ==================== Скролл ====================
         scrollArea = QScrollArea(self)
         scrollArea.setWidgetResizable(True)
         scrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -86,7 +93,6 @@ class BoardColumnWidget(MirrorableWidget):
         self.contentLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         scrollArea.setWidget(contentWidget)
-
         scrollArea.setStyleSheet("border: 1px solid gray; border-radius: 5px;")
         contentWidget.setStyleSheet("background-color: #FADEC3;")
 
@@ -95,124 +101,188 @@ class BoardColumnWidget(MirrorableWidget):
         addBtn = QPushButton()
         addBtn.setIcon(QIcon(utils.resource_path("ui/create.png")))
         addBtn.clicked.connect(self.onAddTask)
-
         centralLay.addWidget(addBtn)
 
-        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
-        self.setFixedWidth(280)
+        self.refreshTasks()
     
+    def deleteColumn(self):
+        from PySide6.QtWidgets import QMessageBox
+        from App.pages.BoardPage import BoardPage
+        from . import TaskWidget
+
+        confirm = QMessageBox(self)
+        confirm.setIcon(QMessageBox.Icon.Warning)
+        confirm.setText("Удалить столбец?")
+        confirm.setInformativeText(f'Столбец "{self.title}" и все его задачи будут удалены.')
+        confirm.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+
+        if confirm.exec() == QMessageBox.StandardButton.Yes:
+            colIdx = self.colIndex()
+            if colIdx < 0:
+                return
+            if hasattr(self, "mirrorWindow") and self.mirrorWindow and self.mirrorWindow.isVisible():
+                self.mirrorWindow.close()
+
+            TaskWidget.closeAllTaskMirrorsForColumn(self.bid, colIdx)
+
+            self.dataManager.data.boards[self.bid].columns.pop(colIdx)
+            self.dataManager.save()
+
+            boardPage = self.window().findChild(BoardPage)
+            if boardPage:
+                boardPage.refresh()
+
+    def refreshTasks(self):
+        utils.clearLayoutWidgets(self.contentLayout)
+        from . import TaskWidget
+
+        colIdx = self.colIndex()
+        if colIdx < 0:
+            return
+
+        for taskData in self.dataManager.data.boards[self.bid].columns[colIdx].tasks:
+            taskWidget = TaskWidget(self, taskData.title)
+            self.contentLayout.addWidget(taskWidget)
+
     def updateTasks(self):
+        from . import TaskWidget
         for i in range(self.contentLayout.count()):
-            item = self.contentLayout.itemAt(i)
-            widget = item.widget()
+            widget = self.contentLayout.itemAt(i).widget()
             if isinstance(widget, TaskWidget):
                 widget.refresh()
 
     def onAddTask(self):
         taskCreateDialog = CreationDialog(self.window())
-        taskCreateDialog.setFixedWidth(512)
         taskCreateDialog.setMinimumHeight(512)
         taskCreateDialog.setMaximumHeight(1024)
-        dialogLay = taskCreateDialog.layout()
-        
+        taskCreateDialog.setBaseSize(QSize(512, 1024))
+
+        dialogLay: QVBoxLayout = taskCreateDialog.layout()
+
         datePicker = QDateEdit(QDate.currentDate())
         datePicker.setCalendarPopup(True)
         datePicker.setMinimumDate(QDate.currentDate())
         datePicker.setEnabled(False)
 
-        dialogLay.addWidget(datePicker)
+        dialogLay.addWidget(datePicker, stretch=1)
 
-        withDateCheckBox = QCheckBox("Конечная дата:")
-        withDateCheckBox.setChecked(False)
-        withDateCheckBox.toggled.connect(datePicker.setEnabled)
+        withDateCheckbox = QCheckBox("Конечная дата:")
+        withDateCheckbox.setChecked(False)
+        withDateCheckbox.toggled.connect(datePicker.setEnabled)
+        dialogLay.addWidget(withDateCheckbox, stretch=1)
 
         tagPicker = EditableListWidget("Тэги", checkMax=3)
         workersPicker = EditableListWidget("Участники", checkMax=3)
 
         for tag in self.dataManager.data.tags:
             tagPicker.addItem(tag)
-        
         for worker in self.dataManager.data.workers:
             workersPicker.addItem(worker)
-        
+
         tagPicker.itemAdded.connect(self.dataManager.addTag)
         tagPicker.itemRemoved.connect(self.dataManager.removeTag)
         workersPicker.itemAdded.connect(self.dataManager.addWorker)
         workersPicker.itemRemoved.connect(self.dataManager.removeWorker)
 
-        dialogLay.addWidget(tagPicker)
-        dialogLay.addWidget(workersPicker)
+        dialogLay.addWidget(tagPicker, stretch=4)
+        dialogLay.addWidget(workersPicker, stretch=4)
 
-        creationStatus = taskCreateDialog.exec()
-        if (creationStatus == 1):
+        if taskCreateDialog.exec() == 1:
             taskTitle = taskCreateDialog.title
             taskDesc = taskCreateDialog.desc
             checkedTags = tagPicker.checkedItems
-            checkedWorkers = tagPicker.checkedItems
-            due_date = datePicker.date().toString() if withDateCheckBox.isChecked() else ""
-            
-            uTitle = self.dataManager.createTask(self.bid, self.colIndex(), taskTitle, checkedWorkers, checkedTags, taskDesc, due_date)
-            # unique title
+            checkedWorkers = workersPicker.checkedItems
+            dueDate = datePicker.date().toString() if withDateCheckbox.isChecked() else ""
 
-            self.contentLayout.addWidget(
-                TaskWidget(self, uTitle)
+            self.dataManager.createTask(
+                self.bid,
+                self.colIndex(),
+                taskTitle,
+                checkedWorkers,
+                checkedTags,
+                taskDesc,
+                dueDate
             )
 
-            if self.mirrorWindow.isVisible():
-                self.mirror()
-
+            self.refreshTasks()
+            paired = self.getPaired()
+            if paired:
+                paired.refreshTasks()
 
     def colIndex(self):
         columns = self.dataManager.data.boards[self.bid].columns
         titles = [col.title for col in columns]
         return utils.indexByFirstEqual(titles, self.title)
 
-
-    def onTitleLabelEdit(self, newTitle):
+    def onTitleLabelEdit(self, newTitle: str):
         columns = self.dataManager.data.boards[self.bid].columns
-        currColumnIndex = self.colIndex()
-        newTitleIndex   = utils.indexByFirstEqual([col.title for col in columns], newTitle)
+        currIdx = self.colIndex()
+        newIdx = utils.indexByFirstEqual([col.title for col in columns], newTitle)
 
-        if newTitleIndex != -1:
+        if newIdx != -1:  # дубликат
             self.titleLabel.setText(self.title)
-            if self.mirrorWindow.isVisible():
-                self.mirror()
             return
-                
-        if currColumnIndex < 0:
-            print("Что-то здесь не так")
+
+        if currIdx < 0:
             return
-        
+
         self.title = newTitle
         self.titleLabel.setText(newTitle)
-        columns[currColumnIndex].title = self.title
+        columns[currIdx].title = newTitle
         self.dataManager.save()
 
         self.updateTasks()
 
-        if self.mirrorWindow.isVisible():
-            self.mirror()
-        
-
+        paired = self.getPaired()
+        if paired:
+            paired.titleLabel.setText(newTitle)
+            paired.title = newTitle
 
     def _mirror(self):
-        mirrorWindowLay = self.mirrorWindow.layout()
-
         self.externalBtn.hide()
-        mirror = BoardColumnWidget(self.bid, self.title, self.dataManager, isMirror=True)
-        mirror.titleLabel.editingFinished.disconnect()
-        mirror.titleLabel.editingFinished.connect(lambda: self.onTitleLabelEdit(mirror.titleLabel.text()))
-        mirrorWindowLay.addWidget(mirror)
+        self.mirrored = BoardColumnWidget(self.bid, self.title, self.dataManager, original=self)
+
+        self.mirrored.titleLabel.editingFinished.disconnect()
+        self.mirrored.titleLabel.editingFinished.connect(
+            lambda: self.onTitleLabelEdit(self.mirrored.titleLabel.text())
+        )
+
+        mirrorWindowLay = self.mirrorWindow.layout()
+        mirrorWindowLay.addWidget(self.mirrored)
         mirrorWindowLay.setContentsMargins(0, 30, 0, 0)
         self.mirrorWindow.setFixedWidth(self.width())
         self.mirrorWindow.setFixedHeight(self.height() + 30)
 
     def updateData(self, bid: str = None, title: str = None):
-        self.bid = self.bid if bid is None else bid
-        self.title = self.title if title is None else title
-        self.titleLabel.setText(self.title)
-        self.updateTasks()
-        if (self.mirrorWindow.isVisible()): self.mirror()
+        # Защита от рекурсии
+        if hasattr(self, '_isUpdating') and self._isUpdating:
+            return
+        self._isUpdating = True
+
+        try:
+            changed = False
+
+            if bid is not None and self.bid != bid:
+                self.bid = bid
+                changed = True
+
+            if title is not None and self.title != title:
+                self.title = title
+                self.titleLabel.setText(self.title)
+                changed = True
+
+            if changed:
+                self.updateTasks()
+
+            # Синхронизируем парный виджет (оригинал ↔ зеркало)
+            paired = self.getPaired()
+            if paired and paired is not self:
+                # Передаём только то, что действительно изменилось
+                paired.updateData(bid if bid is not None else None, 
+                                  title if title is not None else None)
+
+        finally:
+            self._isUpdating = False
 
     def onMirrorClose(self):
         self.externalBtn.show()

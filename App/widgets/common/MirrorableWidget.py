@@ -69,11 +69,15 @@ class MirrorTitleBar(DefaultTitleBar):
         self.hBoxLayout.replaceWidget(self.maxBtn, newMaxBtn)
 
 class MirrorableWidget(QWidget):
-    def __init__(self, parent=None, isMirror=False, mirrorTitle=""):
+
+    original = None
+    mirrored = None
+    def __init__(self, parent=None, original=None, mirrorTitle=""):
         super().__init__(parent=parent)
 
-        self.isMirror = isMirror
-        if isMirror:
+        self.original = original
+
+        if self.original:
             self.mirrorWindow: Window = None
         else:
             self.mirrorWindow = Window(title=mirrorTitle)
@@ -82,7 +86,7 @@ class MirrorableWidget(QWidget):
             self.mirrorWindow.setTitleBar(MirrorTitleBar(self.mirrorWindow, self.toggleTopPin, mirrorTitle, "ui/ico512.png"))
 
     def toggleTopPin(self):
-        target_window = self.window() if self.isMirror else self.mirrorWindow
+        target_window = self.window() if self.original else self.mirrorWindow
         if target_window is None:
             print("toggleTopPin: target_window is None")
             return
@@ -90,16 +94,33 @@ class MirrorableWidget(QWidget):
         target_window.toggleStayOnTop()
         self.pinned = bool(target_window.windowFlags() & Qt.WindowType.WindowStaysOnTopHint)
     
+    def getPaired(self):
+        if self.original:
+            return self.original
+        if hasattr(self, "mirrored") and self.mirrored:
+            return self.mirrored
+        return None
+    
     def mirror(self):
-        if (self.isMirror): return
+        if ((self.mirrorWindow and self.mirrorWindow.isVisible()) or self.original):
+            return
+
         mirrorWindowLay = self.mirrorWindow.layout()
         utils.clearLayoutWidgets(mirrorWindowLay)
 
         self._mirror()
 
         self.mirrorWindow.show()
+
+        self.mirrorWindow.activateWindow()
+        self.mirrorWindow.titleBar.setFocus()
         for btn in self.mirrorWindow.titleBar.findChildren(QWidget):
             btn.clearFocus()
+
+        from PySide6.QtWidgets import QApplication
+        QApplication.instance().processEvents()
+
+        self.mirrorWindow.raise_()
     
     def deleteLater(self): 
         if self.mirrorWindow is not None:

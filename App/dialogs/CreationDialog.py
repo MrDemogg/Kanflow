@@ -1,8 +1,7 @@
 from qframelesswindow import FramelessDialog
 from PySide6.QtWidgets import QVBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QPushButton, QWidget
-from PySide6.QtGui import QFont, QTextCursor
+from PySide6.QtGui import QFont, QTextCursor, QKeyEvent
 from PySide6.QtCore import Qt
-from App.services import DataManager
 
 class CreationDialog(FramelessDialog):
 
@@ -54,7 +53,7 @@ class CreationDialog(FramelessDialog):
         descFormLay.setContentsMargins(0, 10, 0, 0)
         descContainer = QWidget()
         descContainer.setLayout(descFormLay)
-        layout.addWidget(descContainer, stretch=4)
+        layout.addWidget(descContainer, stretch=3)
 
         acceptBtn = QPushButton("Сохранить")
         acceptBtn.clicked.connect(lambda: self.accept() if len(self.titleForm.text().strip()) > 0 else errorLabel.setHidden(False))
@@ -87,3 +86,10 @@ class CreationDialog(FramelessDialog):
             cursor = self.descForm.textCursor()
             cursor.movePosition(QTextCursor.MoveOperation.End)
             self.descForm.setPlainText(text[:maxFormLen])
+
+    def keyPressEvent(self, event: QKeyEvent):
+        if event.key() in (Qt.Key.Key_Enter, Qt.Key.Key_Return):
+            event.ignore()
+            return
+
+        super().keyPressEvent(event)

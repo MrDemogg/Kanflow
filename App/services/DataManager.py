@@ -66,6 +66,13 @@ class DataManager:
         self.save()
 
         return id
+    
+    def createColumn(self, bid: str, title: str):
+        id = utils.uniqueId(title, [column.title for column in self.data.boards[bid].columns])
+
+        self.data.boards[bid].columns.append(Column(id))
+
+        self.save()
 
     def createTask(self, bid: str, cindex, title: str, workers: list[str] = None, tags: list[str] = None, description: str = "", due_date: str = None):
         column = self.data.boards[bid].columns[cindex]

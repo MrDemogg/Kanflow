@@ -16,6 +16,7 @@ class DeletableListLabelItem(ClickableWidget):
         self.setLayout(layout)
 
         self.textLabel = QLabel(text)
+        self.textLabel.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self.deleteBtn = QPushButton()
         self.deleteBtn.setIcon(QIcon(utils.resource_path("ui/close.png")))
         self.deleteBtn.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)

@@ -4,7 +4,7 @@ from App.services import DataManager
 from collections.abc import Callable
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon, QFont
-from App.widgets import BoardColumnWidget
+from App.widgets import BoardColumnWidget, TaskWidget
 from App import utils
 from App.dialogs import CreationDialog
 from qframelesswindow import FramelessMainWindow
@@ -13,18 +13,18 @@ class BoardPage(Page):
     boardId = ""
 
     def _leavePage(self):
+        TaskWidget.closeAllTaskMirrors()
+
         utils.clearLayoutWidgets(self.columnsLay)
         self.navigateHandle(Pages.HOME)
     
     def __init__(self, datamanager: DataManager, navigateHandle: Callable[[str], None]):
         super().__init__(datamanager, navigateHandle, None)
 
-        # Основной layout страницы
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 40, 40, 20)
         layout.setSpacing(5)
 
-        # ==================== HEADER (растягивается пропорционально) ====================
         headerContainer = QWidget()
         headerContainer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         headerContainer.setMinimumHeight(160)
@@ -33,7 +33,6 @@ class BoardPage(Page):
         headerLay.setContentsMargins(0, 0, 0, 0)
         headerLay.setSpacing(20)
 
-        # ─── Левая часть — ровный прямоугольник (leaveBtn + title + desc) ───
         leftWidget = QWidget()
         leftWidget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
@@ -61,19 +60,17 @@ class BoardPage(Page):
 
         leftLayout.addLayout(topRow)
 
-        # Описание — растягивается по высоте вместе с header
         self.desc = QPlainTextEdit()
         self.desc.setReadOnly(True)
         self.desc.setFont(QFont("Segoe UI", 20))
         self.desc.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.desc.setMinimumHeight(80)                  # ← только минимум
+        self.desc.setMinimumHeight(80)
         self.desc.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
         leftLayout.addWidget(self.desc, stretch=1)
 
         headerLay.addWidget(leftWidget, stretch=1)
 
-        # ─── Кнопка Options — растягивается на всю высоту header ───
         self.optionBtn = QPushButton()
         self.optionBtn.setIcon(QIcon(utils.resource_path("ui/options.png")))
         self.optionBtn.setIconSize(QSize(58, 58))
@@ -84,21 +81,12 @@ class BoardPage(Page):
 
         headerLay.addWidget(self.optionBtn)
 
-        # ==================== Сплошная белая линия ====================
         headerLine = QWidget()
         headerLine.setFixedHeight(2)
         headerLine.setStyleSheet("background-color: white;")
 
-        # ==================== Добавляем в основной layout ====================
-        layout.addWidget(headerContainer, stretch=2)      # header получает ~20% высоты окна
+        layout.addWidget(headerContainer, stretch=2)
         layout.addWidget(headerLine)
-
-        # Основной контент страницы (растягивается на всё оставшееся пространство)
-        # contentArea = QWidget()
-        # contentArea.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        # layout.addWidget(self.contentArea, stretch=8)    # контент получает ~80% высоты
-
-        # -----------------------------
 
         columnsScroll = QScrollArea()
         columnsScroll.setWidgetResizable(True)
@@ -122,13 +110,14 @@ class BoardPage(Page):
 
         layout.addWidget(columnsScroll, stretch=8)
 
-    # def _clearColumns(self):
-    #     while self.columnsLay.count():
-    #         item = self.columnsLay.takeAt(0)
-    #         widget = item.widget()
-    #         if widget:
-    #             widget.setParent(None)
-    #             widget.deleteLater()
+        createBtn = QPushButton("Создать столбец")
+        createBtn.clicked.connect(self.onCreateColumn)
+
+        layout.addWidget(createBtn)
+
+    def onCreateColumn(self):
+        self.datamanager.createColumn(self.boardId, "Template")
+        self.refresh()
     
     def boardOptions(self):
         boardOptWindow = CreationDialog(self.window())

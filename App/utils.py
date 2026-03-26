@@ -21,7 +21,7 @@ def uniqueId(id: str, ids: list[str]) -> str:
     return _id
 
 def indexByFirstEqual(arr: list, o):
-    return next((i for i in range(arr) if arr[i] == o), -1)
+    return next((i for i in range(len(arr)) if arr[i] == o), -1)
 
 def clearLayoutWidgets(layout: QLayout):
         while layout.count():

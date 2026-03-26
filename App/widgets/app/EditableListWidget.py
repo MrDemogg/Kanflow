@@ -110,14 +110,17 @@ class EditableListWidget(QWidget):
         return False
 
     def onItemClicked(self, widget: DeletableListLabelItem):
-        
         text = widget.textLabel.text()
+        
         if text in self.checkedItems:
             self.checkedItems.remove(text)
             widget.setObjectName("deletableLabel")
-        elif (self.checkMax <= 0 or len(self.checkedItems) < self.checkMax):
+        elif self.checkMax <= 0 or len(self.checkedItems) < self.checkMax:
             self.checkedItems.append(text)
             widget.setObjectName("checkedDeletableLabel")
-        
-        widget.setStyleSheet("")
-        widget.setStyleSheet(widget.styleSheet())
+        else:
+            return
+
+        widget.style().unpolish(widget)
+        widget.style().polish(widget)
+        widget.update()
