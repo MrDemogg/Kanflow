@@ -117,7 +117,11 @@ class BoardPage(Page):
 
     def onCreateColumn(self):
         self.datamanager.createColumn(self.boardId, "Template")
-        self.refresh()
+        board = self.datamanager.data.boards[self.boardId]
+        new_column = BoardColumnWidget(self.boardId, board.columns[-1].title, self.datamanager)
+        self.columnsLay.addWidget(new_column)
+
+        utils.logger.info(f"Новая колонка '{board.columns[-1].title}' создана в доске '{self.boardId}'")
     
     def boardOptions(self):
         boardOptWindow = CreationDialog(self.window())
@@ -135,6 +139,8 @@ class BoardPage(Page):
             boardData = self.datamanager.data.boards[self.boardId]
             boardData.title = newTitle
             boardData.description = newDesc
+
+            utils.logger.info(f"Доска '{self.boardId}' обновлена: название на '{newTitle}', описание на '{newDesc}'")
 
             self.title.setText(newTitle)
             self.desc.setPlainText(newDesc)
@@ -162,9 +168,35 @@ class BoardPage(Page):
         self.title.setText(board.title)
         self.desc.setPlainText(board.description)
 
-        for columnData in board.columns:
-            columnWidget = BoardColumnWidget(self.boardId, columnData.title, self.datamanager)
-            self.columnsLay.addWidget(columnWidget)
+        current_widgets = {}
+        for i in range(self.columnsLay.count()):
+            widget = self.columnsLay.itemAt(i).widget()
+            if isinstance(widget, BoardColumnWidget):
+                current_widgets[widget.title] = widget
+
+        columns = board.columns
+
+        # Remove widgets not in columns
+        to_remove = []
+        for title, widget in current_widgets.items():
+            if not any(c.title == title for c in columns):
+                self.columnsLay.removeWidget(widget)
+                widget.deleteLater()
+                to_remove.append(title)
+        for title in to_remove:
+            del current_widgets[title]
+
+        # Add new columns or update existing
+        existing_titles = set(current_widgets.keys())
+        for columnData in columns:
+            if columnData.title not in existing_titles:
+                columnWidget = BoardColumnWidget(self.boardId, columnData.title, self.datamanager)
+                self.columnsLay.addWidget(columnWidget)
+                current_widgets[columnData.title] = columnWidget
+            else:
+                # Update existing
+                widget = current_widgets[columnData.title]
+                widget.updateData(self.boardId, columnData.title)
 
     def open(self):
         wsize = QSize(1080, 720)

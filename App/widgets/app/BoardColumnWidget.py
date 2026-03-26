@@ -123,26 +123,56 @@ class BoardColumnWidget(MirrorableWidget):
             if hasattr(self, "mirrorWindow") and self.mirrorWindow and self.mirrorWindow.isVisible():
                 self.mirrorWindow.close()
 
+            utils.logger.info(f"Столбец '{self.title}' удален из доски '{self.bid}' вместе с {len(self.dataManager.data.boards[self.bid].columns[colIdx].tasks)} задачами")
+
             TaskWidget.closeAllTaskMirrorsForColumn(self.bid, colIdx)
 
             self.dataManager.data.boards[self.bid].columns.pop(colIdx)
             self.dataManager.save()
 
+            # Incremental removal
             boardPage = self.window().findChild(BoardPage)
             if boardPage:
-                boardPage.refresh()
+                boardPage.columnsLay.removeWidget(self)
+                self.deleteLater()
 
     def refreshTasks(self):
-        utils.clearLayoutWidgets(self.contentLayout)
         from . import TaskWidget
-
         colIdx = self.colIndex()
         if colIdx < 0:
+            utils.clearLayoutWidgets(self.contentLayout)
             return
 
-        for taskData in self.dataManager.data.boards[self.bid].columns[colIdx].tasks:
-            taskWidget = TaskWidget(self, taskData.title)
-            self.contentLayout.addWidget(taskWidget)
+        tasks = self.dataManager.data.boards[self.bid].columns[colIdx].tasks
+
+        current_widgets = {}
+        for i in range(self.contentLayout.count()):
+            widget = self.contentLayout.itemAt(i).widget()
+            if isinstance(widget, TaskWidget):
+                current_widgets[widget.title] = widget
+
+        # Remove widgets not in tasks
+        to_remove = []
+        for title, widget in current_widgets.items():
+            if not any(t.title == title for t in tasks):
+                self.contentLayout.removeWidget(widget)
+                widget.deleteLater()
+                to_remove.append(title)
+        for title in to_remove:
+            del current_widgets[title]
+
+        # Add new tasks or update existing
+        existing_titles = set(current_widgets.keys())
+        for taskData in tasks:
+            if taskData.title not in existing_titles:
+                taskWidget = TaskWidget(self, taskData.title)
+                self.contentLayout.addWidget(taskWidget)
+                current_widgets[taskData.title] = taskWidget
+            else:
+                # Update existing
+                widget = current_widgets[taskData.title]
+                widget.task = taskData
+                widget.refresh()
 
     def updateTasks(self):
         from . import TaskWidget
@@ -204,6 +234,8 @@ class BoardColumnWidget(MirrorableWidget):
                 dueDate
             )
 
+            utils.logger.info(f"Задача '{taskTitle}' создана в колонке '{self.title}' доски '{self.bid}' с датой сдачи '{dueDate}'")
+
             self.refreshTasks()
             paired = self.getPaired()
             if paired:
@@ -231,6 +263,8 @@ class BoardColumnWidget(MirrorableWidget):
         columns[currIdx].title = newTitle
         self.dataManager.save()
 
+        utils.logger.info(f"Название колонки поменялось с '{self.title}' на '{newTitle}' в доске '{self.bid}'")
+
         self.updateTasks()
 
         paired = self.getPaired()
@@ -241,6 +275,7 @@ class BoardColumnWidget(MirrorableWidget):
     def _mirror(self):
         self.externalBtn.hide()
         self.mirrored = BoardColumnWidget(self.bid, self.title, self.dataManager, original=self)
+
 
         self.mirrored.titleLabel.editingFinished.disconnect()
         self.mirrored.titleLabel.editingFinished.connect(
@@ -274,10 +309,8 @@ class BoardColumnWidget(MirrorableWidget):
             if changed:
                 self.updateTasks()
 
-            # Синхронизируем парный виджет (оригинал ↔ зеркало)
             paired = self.getPaired()
             if paired and paired is not self:
-                # Передаём только то, что действительно изменилось
                 paired.updateData(bid if bid is not None else None, 
                                   title if title is not None else None)
 

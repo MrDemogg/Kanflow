@@ -14,5 +14,3 @@ class DefaultTitleBar(StandardTitleBar):
         self.closeBtn.setHoverColor(QColor(255, 102, 102))
         self.setIcon(QIcon(utils.resource_path(icon)))
         self.setTitle(title)
-
-        self.setMinimumHeight(30)

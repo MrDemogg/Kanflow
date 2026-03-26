@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QLineEdit, QPlainTextEdit, QDateEdit, QDateTimeEdit
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QLineEdit, QPlainTextEdit, QDateEdit, QAbstractSpinBox
 from PySide6.QtGui import QFont, QIcon
 from PySide6.QtCore import Qt, QDate, QDateTime
 
@@ -21,10 +21,26 @@ class TaskWidget(MirrorableWidget):
 
         layout = QVBoxLayout(self)
 
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
         self.titleLabel = QLabel(self.title)
         self.titleLabel.setFont(QFont("Segoe UI", 34))
         self.dueDate = QDateEdit(QDate.fromString(self.task.due_date))
         self.dueDate.setReadOnly(True) # потом можно сделать это тоже меняемым но пока-что плевать, времени нет
+        self.dueDate.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+        self.dueDate.setStyleSheet("""
+            QDateEdit {
+                background-color: transparent;
+                border: none;
+            }
+            QDateEdit:focus {
+                background-color: transparent;
+            }
+            QDateEdit:hover {
+                background-color: transparent;
+            }
+        """)
         if not self.original:
             self.deleteBtn = QPushButton()
             self.deleteBtn.setIcon(QIcon(utils.resource_path("ui/close.png")))
@@ -32,6 +48,22 @@ class TaskWidget(MirrorableWidget):
             layout.addWidget(self.titleLabel)
             layout.addWidget(self.dueDate)
             layout.addWidget(self.deleteBtn)
+
+            hBottom = QHBoxLayout()
+
+            self.leftBtn = QPushButton()
+            self.leftBtn.setIcon(QIcon(utils.resource_path("ui/left.png")))
+            self.rightBtn = QPushButton()
+            self.rightBtn.setIcon(QIcon(utils.resource_path("ui/right.png")))
+
+            self.leftBtn.clicked.connect(lambda: self.changeCol(self.cid - 1))
+            self.rightBtn.clicked.connect(lambda: self.changeCol(self.cid + 1))
+
+            hBottom.addWidget(self.leftBtn)
+            hBottom.addWidget(self.rightBtn)
+
+            layout.addLayout(hBottom)
+            self.refresh()
             return
         
         self.description = QPlainTextEdit(self.task.description)
@@ -55,9 +87,50 @@ class TaskWidget(MirrorableWidget):
 
         self.refresh()
 
+    def changeCol(self, colIndex: int):
+        columns = self.dataManager.data.boards[self.bid].columns
+
+        if colIndex < 0 or colIndex >= len(columns):
+            return
+        
+        # ну в 23 часа ночи не грех и нейронку юзнуть по полной
+        old_column = self.column
+
+        columns[colIndex].tasks.append(
+            columns[self.cid].tasks.pop(self.taskIndex())
+        )
+
+        self.dataManager.save()
+
+        utils.logger.info(f"Задача '{self.title}' перемещена из колонки '{old_column.title}' в колонку '{columns[colIndex].title}' в доске '{self.bid}'")
+
+        old_layout = self.column.contentLayout
+        new_col_widget = self.column.window().findChildren(BoardColumnWidget)[colIndex]
+        new_layout = new_col_widget.contentLayout
+
+        old_layout.removeWidget(self)
+        new_layout.addWidget(self)
+
+        self.column = new_col_widget
+        self.refresh()
+
+        paired = self.column.getPaired()
+        if paired:
+            paired.refreshTasks()
+
+        new_paired = new_col_widget.getPaired()
+        if new_paired:
+            new_paired.refreshTasks()
+
+        old_paired = old_column.getPaired()
+        if old_paired:
+            old_paired.refreshTasks()
+        
     
     def onPublishComment(self):
         comment = Comment(self.commentAuthorInput.text(), self.commentInput.text(), QDateTime.currentDateTime().toSecsSinceEpoch())
+
+        utils.logger.info(f"Комментарий '{self.title}' от '{comment.author}': '{comment.content}'")
 
         self.commentInput.clear()
 
@@ -68,10 +141,13 @@ class TaskWidget(MirrorableWidget):
 
     
     def onDelete(self):
+        utils.logger.info(f"Задача '{self.title}' удалена из колонки '{self.column.title}' в доске '{self.bid}'")
         self.dataManager.data.boards[self.bid].columns[self.cid].tasks.pop(self.taskIndex())
         self.dataManager.save()
 
-        self.column.refreshTasks()
+        self.column.contentLayout.removeWidget(self)
+        self.deleteLater()
+
         paired: BoardColumnWidget = self.column.getPaired()
         if paired:
             paired.refreshTasks()
@@ -128,10 +204,19 @@ class TaskWidget(MirrorableWidget):
         return utils.indexByFirstEqual(titles, self.title)
 
     def refresh(self):
+        self.leftBtn.hide()
+        self.rightBtn.hide()
         if self.original:
             self.comments.clear()
             for comment in self.task.comments:
                 self.comments.appendPlainText(f"[{QDateTime.fromSecsSinceEpoch(comment.timestamp).toString()}] {comment.author} - {comment.content}")
+        elif not self.column.original:
+            if self.cid > 0:
+                self.leftBtn.show()
+            
+            if self.cid < (len(self.dataManager.data.boards[self.bid].columns) - 1):
+                self.rightBtn.show()
+
         pass
 
     def onDataChange(self, newTitle):

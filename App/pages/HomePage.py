@@ -133,7 +133,7 @@ class HomePage(Page):
     
 
     def selectBoard(self, key: str) -> None: 
-        print(key)
+        utils.logger.info(f"Выбор доски {key}")
         self.dataTransfer(Pages.BOARD, {"bid": key})
         self.navigateHandle(Pages.BOARD)
 

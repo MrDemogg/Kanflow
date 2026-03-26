@@ -66,6 +66,7 @@ class MainWindow(FramelessMainWindow):
     #         self.stack.setCurrentWidget(self.pages[page_name])
 
     def handleNavigation(self, pageName: str):
+        utils.logger.info(f"Перемещение на страницу {pageName}")
         self.stack.setCurrentWidget(self.pages[pageName])
         self.pages[pageName].open()
     
