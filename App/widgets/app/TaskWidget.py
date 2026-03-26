@@ -1,7 +1,10 @@
 from PySide6.QtWidgets import QVBoxLayout, QLabel
 from PySide6.QtGui import QFont
+
+from App import utils
 from .BoardColumnWidget import BoardColumnWidget
 from ..common import MirrorableWidget, ClickableWidget
+from App.models.DataModels import *
 
 class TaskWidget(MirrorableWidget, ClickableWidget): # ухты пухты, 2 родительских класса одновременно, папа и папа
     def __init__(self, column: BoardColumnWidget, title: str, parent=None, isMirror=False):
@@ -16,9 +19,39 @@ class TaskWidget(MirrorableWidget, ClickableWidget): # ухты пухты, 2 р
         self.titleLabel = QLabel(self.title)
         titleFont = QFont("Segoe UI", 34)
         self.titleLabel.setFont(titleFont)
-    
-    def update(self, title: str):
-        self.titleLabel.setText(title)
+
+        layout.addWidget(self.titleLabel)
+
+        self.clicked.connect(self.mirror)
+
+    def taskIndex(self):
+        tasks: list[Task] = self.datamanager.data.boards[self.bid].columns[self.cid].tasks
+        titles: list[str] = [task.title for task in tasks]
+        return utils.indexByFirstEqual(titles, self.title)
+
+
+    def onDataChange(self, newTitle):
+        tasks: list[Task] = self.datamanager.data.boards[self.bid].columns[self.cid].tasks
+        currTaskIndex = self.taskIndex()
+        newTitleIndex = utils.indexByFirstEqual([task.title for task in tasks], newTitle)
+
+        if newTitleIndex != -1:
+            self.titleLabel.setText(self.title)
+            if self.mirrorWindow.isVisible():
+                self.mirror()
+            return
+
+        if currTaskIndex < 0:
+            print("Что-то здесь не так")
+            return
+        
+        self.title = newTitle
+        self.titleLabel.setText(newTitle)
+
+        tasks[currTaskIndex].title = self.title
+
+    def refresh(self):
+        self.task: Task = self.datamanager.data.boards[self.bid].columns[self.cid].tasks[self.title]
 
     @property
     def bid(self):
@@ -26,5 +59,5 @@ class TaskWidget(MirrorableWidget, ClickableWidget): # ухты пухты, 2 р
 
     @property
     def cid(self):
-        return self.column._colIndex()
+        return self.column.colIndex()
         

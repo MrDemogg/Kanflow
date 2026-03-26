@@ -69,7 +69,6 @@ class Task:
         }
 
 class Column:
-    tasks = []
     def __init__(self, title: str, tasks: list[Task] | list[dict[str, any]] = None):
         self.title = title
         if (isinstance(tasks, list) and all(isinstance(x, dict) for x in tasks)):

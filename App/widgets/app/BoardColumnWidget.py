@@ -100,12 +100,13 @@ class BoardColumnWidget(MirrorableWidget):
 
         self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
         self.setFixedWidth(280)
-
-        self.refresh()
     
-    def refresh(self):
-        pass
-
+    def updateTasks(self):
+        for i in range(self.contentLayout.count()):
+            item = self.contentLayout.itemAt(i)
+            widget = item.widget()
+            if isinstance(widget, TaskWidget):
+                widget.refresh()
 
     def onAddTask(self):
         taskCreateDialog = CreationDialog(self.window())
@@ -150,15 +151,18 @@ class BoardColumnWidget(MirrorableWidget):
             checkedWorkers = tagPicker.checkedItems
             due_date = datePicker.date().toString() if withDateCheckBox.isChecked() else ""
             
-            uTitle = self.dataManager.createTask(self.bid, self._colIndex(), taskTitle, checkedWorkers, checkedTags, taskDesc, due_date)
+            uTitle = self.dataManager.createTask(self.bid, self.colIndex(), taskTitle, checkedWorkers, checkedTags, taskDesc, due_date)
             # unique title
 
             self.contentLayout.addWidget(
                 TaskWidget(self, uTitle)
             )
 
+            if self.mirrorWindow.isVisible():
+                self.mirror()
 
-    def _colIndex(self):
+
+    def colIndex(self):
         columns = self.dataManager.data.boards[self.bid].columns
         titles = [col.title for col in columns]
         return utils.indexByFirstEqual(titles, self.title)
@@ -166,7 +170,7 @@ class BoardColumnWidget(MirrorableWidget):
 
     def onTitleLabelEdit(self, newTitle):
         columns = self.dataManager.data.boards[self.bid].columns
-        currColumnIndex = self._colIndex()
+        currColumnIndex = self.colIndex()
         newTitleIndex   = utils.indexByFirstEqual([col.title for col in columns], newTitle)
 
         if newTitleIndex != -1:
@@ -184,8 +188,12 @@ class BoardColumnWidget(MirrorableWidget):
         columns[currColumnIndex].title = self.title
         self.dataManager.save()
 
+        self.updateTasks()
+
         if self.mirrorWindow.isVisible():
             self.mirror()
+        
+
 
     def _mirror(self):
         mirrorWindowLay = self.mirrorWindow.layout()
@@ -203,6 +211,7 @@ class BoardColumnWidget(MirrorableWidget):
         self.bid = self.bid if bid is None else bid
         self.title = self.title if title is None else title
         self.titleLabel.setText(self.title)
+        self.updateTasks()
         if (self.mirrorWindow.isVisible()): self.mirror()
 
     def onMirrorClose(self):
